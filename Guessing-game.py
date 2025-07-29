@@ -1,104 +1,102 @@
+import tkinter as tk
+from tkinter import messagebox
 import random
 import os
 
+# Load word list
 def load_words():
-    """
-    Load words from a file if available, otherwise use a default list.
-    """
-    word_list = []
-    filename = "words.txt"
-
-    if os.path.exists(filename):
-        with open(filename, 'r') as file:
-            for line in file:
-                word = line.strip()
-                if word:
-                    word_list.append(word.lower())
+    if os.path.exists("words.txt"):
+        with open("words.txt", "r") as file:
+            return [line.strip().lower() for line in file if line.strip()]
     else:
-        word_list = ['apple', 'banana', 'grape', 'orange', 'melon', 'peach']
+        return ['apple', 'banana', 'grape', 'orange', 'melon', 'peach']
 
-    return word_list
-
+# Pick a word at random
 def choose_word(word_list):
-    """
-    Randomly choose a word from the list.
-    """
     return random.choice(word_list)
 
-def display_progress(word, guessed_letters):
-    """
-    Show the current progress with guessed letters and underscores.
-    """
-    result = ''
-    for letter in word:
-        if letter in guessed_letters:
-            result += letter + ' '
-        else:
-            result += '_ '
-    return result.strip()
+# Main GUI Game Class
+class HangmanGame:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Hangman Game")
 
-def get_valid_guess(guessed_letters):
-    """
-    Prompt the user for a valid, single alphabetical guess.
-    """
-    while True:
-        guess = input("Guess a letter: ").strip().lower()
+        self.word_list = load_words()
+        self.reset_game()
 
-        if len(guess) != 1:
-            print("Please enter only one letter.")
-        elif not guess.isalpha():
-            print("Please enter a valid alphabetical character.")
-        elif guess in guessed_letters:
-            print("You already guessed that letter. Try a different one.")
-        else:
-            return guess
+        # GUI Elements
+        self.word_label = tk.Label(root, text=self.get_display_word(), font=('Arial', 24))
+        self.word_label.pack(pady=10)
 
-def play_game(word):
-    """
-    Run a single round of Hangman with input validation.
-    """
-    guessed_letters = set()
-    max_attempts = 40
-    attempts_left = max_attempts
+        self.entry_label = tk.Label(root, text="Enter a letter:")
+        self.entry_label.pack()
 
-    print("\nLet's play Hangman!")
-    print("You have", max_attempts, "tries to guess the word.")
-    print(display_progress(word, guessed_letters))
+        self.guess_entry = tk.Entry(root, width=5, font=('Arial', 16))
+        self.guess_entry.pack()
 
-    while attempts_left > 0:
-        guess = get_valid_guess(guessed_letters)
-        guessed_letters.add(guess)
+        self.guess_button = tk.Button(root, text="Guess", command=self.process_guess)
+        self.guess_button.pack(pady=10)
 
-        if guess in word:
-            print("Good guess!")
-        else:
-            print("Wrong guess.")
-            attempts_left -= 1
+        self.info_label = tk.Label(root, text=f"Guesses left: {self.attempts_left}")
+        self.info_label.pack()
 
-        print("Word:", display_progress(word, guessed_letters))
-        print("Tries left:", attempts_left)
+        self.guessed_label = tk.Label(root, text="Guessed letters: ")
+        self.guessed_label.pack()
 
-        # Check if word is fully guessed
-        if all(letter in guessed_letters for letter in word):
-            print("\n🎉 You won! The word was:", word)
+    def reset_game(self):
+        self.word = choose_word(self.word_list)
+        self.guessed_letters = set()
+        self.max_attempts = 6
+        self.attempts_left = self.max_attempts
+
+    def get_display_word(self):
+        return ' '.join([letter if letter in self.guessed_letters else '_' for letter in self.word])
+
+    def process_guess(self):
+        guess = self.guess_entry.get().strip().lower()
+        self.guess_entry.delete(0, tk.END)
+
+        if len(guess) != 1 or not guess.isalpha():
+            messagebox.showwarning("Invalid input", "Please enter a single alphabetical letter.")
             return
 
-    print("\n💀 You lost! The word was:", word)
+        if guess in self.guessed_letters:
+            messagebox.showinfo("Already guessed", f"You already guessed '{guess}'. Try a different letter.")
+            return
 
-def main():
-    """
-    Main loop for playing multiple games.
-    """
-    word_list = load_words()
+        self.guessed_letters.add(guess)
 
-    while True:
-        word_to_guess = choose_word(word_list)
-        play_game(word_to_guess)
+        if guess not in self.word:
+            self.attempts_left -= 1
 
-        again = input("\nWould you like to play again? (y/n): ").strip().lower()
-        if again != 'y':
-            print("Thanks for playing! Goodbye.")
-            break
+        # Update UI
+        self.word_label.config(text=self.get_display_word())
+        self.info_label.config(text=f"Guesses left: {self.attempts_left}")
+        self.guessed_label.config(text="Guessed letters: " + ', '.join(sorted(self.guessed_letters)))
 
+        # Check win
+        if all(letter in self.guessed_letters for letter in self.word):
+            messagebox.showinfo("You Win!", f"Congratulations! The word was '{self.word}'.")
+            self.ask_play_again()
+
+        # Check loss
+        elif self.attempts_left == 0:
+            messagebox.showinfo("Game Over", f"You lost! The word was '{self.word}'.")
+            self.ask_play_again()
+
+    def ask_play_again(self):
+        play_again = messagebox.askyesno("Play Again", "Do you want to play again?")
+        if play_again:
+            self.reset_game()
+            self.word_label.config(text=self.get_display_word())
+            self.info_label.config(text=f"Guesses left: {self.attempts_left}")
+            self.guessed_label.config(text="Guessed letters: ")
+        else:
+            self.root.quit()
+
+# Run the game
 if __name__ == "__main__":
-    main()
+    root = tk.Tk()
+    root.geometry("640x480")
+    game = HangmanGame(root)
+    root.mainloop() # this runs endlessly, until the window close button is clicked
