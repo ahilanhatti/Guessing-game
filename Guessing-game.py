@@ -9,7 +9,7 @@ SCORE_FILE = "scores.json"
 class HangmanGame:
     def __init__(self, root):
         self.root = root
-        self.root.title("Hangman Game with Score Tracking")
+        self.root.title("Hangman Game with Drawing")
 
         self.scores = self.load_scores()
         self.categories = self.load_categories()
@@ -82,9 +82,11 @@ class HangmanGame:
     def build_game_ui(self):
         self.clear_window()
 
+        # Word display
         self.word_label = tk.Label(self.root, text=self.get_display_word(), font=('Arial', 24))
         self.word_label.pack(pady=10)
 
+        # Entry + button
         self.entry_label = tk.Label(self.root, text="Enter a letter:")
         self.entry_label.pack()
 
@@ -94,11 +96,18 @@ class HangmanGame:
         self.guess_button = tk.Button(self.root, text="Guess", command=self.process_guess)
         self.guess_button.pack(pady=10)
 
+        # Info
         self.info_label = tk.Label(self.root, text=f"Guesses left: {self.attempts_left}")
         self.info_label.pack()
 
         self.guessed_label = tk.Label(self.root, text="Guessed letters: ")
         self.guessed_label.pack()
+
+        # Canvas for drawing hangman
+        self.canvas = tk.Canvas(self.root, width=200, height=250, bg="white")
+        self.canvas.pack(pady=10)
+
+        self.draw_base()
 
     def get_display_word(self):
         return ' '.join([letter if letter in self.guessed_letters else '_' for letter in self.word])
@@ -119,6 +128,7 @@ class HangmanGame:
 
         if guess not in self.word:
             self.attempts_left -= 1
+            self.draw_hangman()
 
         self.word_label.config(text=self.get_display_word())
         self.info_label.config(text=f"Guesses left: {self.attempts_left}")
@@ -136,9 +146,36 @@ class HangmanGame:
             messagebox.showinfo("Game Over", f"You lost! The word was '{self.word}'.")
             self.setup_category_selection_ui()
 
+    # -------------------------
+    # Drawing methods
+    # -------------------------
+    def draw_base(self):
+        """Draw gallows base."""
+        self.canvas.create_line(20, 230, 180, 230)  # base
+        self.canvas.create_line(50, 230, 50, 20)    # pole
+        self.canvas.create_line(50, 20, 120, 20)    # top beam
+        self.canvas.create_line(120, 20, 120, 50)   # rope
+
+    def draw_hangman(self):
+        """Draw hangman parts depending on attempts left."""
+        parts = self.max_attempts - self.attempts_left
+
+        if parts == 1:  # head
+            self.canvas.create_oval(100, 50, 140, 90)
+        elif parts == 2:  # body
+            self.canvas.create_line(120, 90, 120, 150)
+        elif parts == 3:  # left arm
+            self.canvas.create_line(120, 100, 90, 130)
+        elif parts == 4:  # right arm
+            self.canvas.create_line(120, 100, 150, 130)
+        elif parts == 5:  # left leg
+            self.canvas.create_line(120, 150, 90, 190)
+        elif parts == 6:  # right leg
+            self.canvas.create_line(120, 150, 150, 190)
+
 
 if __name__ == "__main__":
     root = tk.Tk()
-    root.geometry("640x480")
+    #root.geometry("640x480")
     game = HangmanGame(root)
     root.mainloop()
