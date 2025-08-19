@@ -9,7 +9,7 @@ SCORE_FILE = "scores.json"
 class HangmanGame:
     def __init__(self, root):
         self.root = root
-        self.root.title("Hangman Game - Phase 8")
+        self.root.title("Hangman Game - Phase 8 (Fixed)")
 
         # Scores persist across sessions
         self.scores = self.load_scores()
@@ -89,7 +89,7 @@ class HangmanGame:
 
         self.build_game_ui()
 
-        # Bind keyboard input
+        # Bind keyboard input globally
         self.root.bind("<Key>", self.handle_keypress)
 
     def build_game_ui(self):
@@ -132,7 +132,10 @@ class HangmanGame:
             self.process_guess(guess)
 
     def handle_keypress(self, event):
-        """Allow direct keyboard typing."""
+        """Allow direct keyboard typing, but ignore if entry box has focus."""
+        if self.root.focus_get() == self.guess_entry:
+            return  # don't steal keypresses meant for the entry field
+
         guess = event.char.lower()
         if guess.isalpha() and len(guess) == 1:
             self.process_guess(guess)
